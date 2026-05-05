@@ -404,6 +404,61 @@ select {
   width: 100%;
 }
 
+.path-input {
+  margin-top: 8px;
+  display: flex;
+  gap: 6px;
+}
+
+.path-input input {
+  flex: 1;
+  background: var(--surface-2);
+  color: var(--on-surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px 10px;
+  font: inherit;
+  font-size: 13px;
+  font-family: ui-monospace, "Cascadia Code", "JetBrains Mono", Consolas,
+    "SFMono-Regular", monospace;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.path-input input:focus {
+  outline: 2px solid var(--primary);
+  outline-offset: -2px;
+}
+
+.btn-primary {
+  background: var(--primary);
+  color: var(--on-primary);
+  border-radius: 8px;
+  padding: 6px 14px;
+  font-weight: 500;
+  font-size: 13px;
+}
+
+.btn-primary:hover {
+  filter: brightness(1.1);
+}
+
+.btn-secondary {
+  margin: 4px 4px 12px 4px;
+  padding: 8px 12px;
+  background: var(--surface-2);
+  color: var(--on-surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 13px;
+  align-self: flex-start;
+}
+
+.btn-secondary:hover {
+  background: var(--surface);
+  border-color: var(--primary);
+}
+
 /* ----------------------- Switch ----------------------- */
 
 .switch {
