@@ -4,7 +4,8 @@ VIBE CODING!!! (скачивайте и запускайте всё на сво�
 
 Лёгкий GUI для [`flowseal/zapret-discord-youtube`](https://github.com/Flowseal/zapret-discord-youtube). Одна большая кнопка — старт, ещё раз — стоп. Дизайн вдохновлён [`romanvht/ByeByeDPI`](https://github.com/romanvht/ByeByeDPI).
 
-![main screen]()
+![main screen]()<img width="422" height="652" alt="изображение" src="https://github.com/user-attachments/assets/40bddb28-97b2-44c5-91b0-2b6eb4f8638d" />
+
 
 ## Возможности
 
