@@ -11,7 +11,7 @@ use tauri::{
     AppHandle, Emitter, Manager, State,
 };
 
-use crate::settings::{autodetect_zapret_path, looks_like_zapret, Settings};
+use crate::settings::{autodetect_zapret_path, inspect_path, looks_like_zapret, PathInspection, Settings};
 use crate::strategies::{list_strategies, Strategy};
 use crate::zapret::{current_status, start as zapret_start, stop as zapret_stop, Status, ZapretState};
 
@@ -50,6 +50,11 @@ fn detect_zapret_path() -> Option<String> {
 #[tauri::command]
 fn validate_zapret_path(path: String) -> bool {
     !path.is_empty() && looks_like_zapret(&path)
+}
+
+#[tauri::command]
+fn inspect_zapret_path(path: String) -> PathInspection {
+    inspect_path(&path)
 }
 
 #[tauri::command]
@@ -155,6 +160,7 @@ pub fn run() {
             save_settings,
             detect_zapret_path,
             validate_zapret_path,
+            inspect_zapret_path,
             list_strategies_cmd,
             get_status,
             start_zapret,

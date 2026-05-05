@@ -123,9 +123,31 @@
           <div class="row__main">
             <span class="row__label">Папка zapret-discord-youtube</span>
             <span id="zapret-path-value" class="row__sub">не выбрана</span>
+            <span id="zapret-path-message" class="row__hint" hidden></span>
           </div>
           <span id="zapret-path-status" class="badge badge--bad">не найден</span>
         </div>
+
+        <div class="row" id="row-zapret-manual">
+          <div class="row__main">
+            <span class="row__label">Ввести путь вручную</span>
+            <span class="row__hint">Если кнопка выбора не открывается — вставьте полный путь к папке (например, <code>C:\zapret-discord-youtube</code>) и нажмите Enter</span>
+            <div class="path-input">
+              <input
+                id="zapret-path-input"
+                type="text"
+                spellcheck="false"
+                autocomplete="off"
+                placeholder="C:\zapret-discord-youtube"
+              />
+              <button id="zapret-path-apply" class="btn-primary" type="button">Применить</button>
+            </div>
+          </div>
+        </div>
+
+        <button id="zapret-path-redetect" class="btn-secondary" type="button">
+          Найти автоматически
+        </button>
 
         <h2 class="settings__group">Стратегия</h2>
 

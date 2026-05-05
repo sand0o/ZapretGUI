@@ -29,9 +29,29 @@ async function listen(event, cb) {
 }
 
 async function pickFolder() {
+  // Try every known path to the dialog plugin. Tauri 2 exposes plugins under
+  // `window.__TAURI__.dialog` only when withGlobalTauri=true AND the plugin's
+  // own JS package is loaded. As a robust fallback, we go through the core
+  // `invoke()` directly: this works as long as the plugin is registered in
+  // Rust, regardless of which JS injection actually happened.
   if (DIALOG && DIALOG.open) {
-    return DIALOG.open({ directory: true, multiple: false });
+    try {
+      return await DIALOG.open({ directory: true, multiple: false });
+    } catch (e) {
+      console.warn("DIALOG.open failed, falling back to plugin:dialog|open", e);
+    }
   }
+  if (TAURI && TAURI.invoke) {
+    try {
+      return await TAURI.invoke("plugin:dialog|open", {
+        options: { directory: true, multiple: false },
+      });
+    } catch (e) {
+      console.error("plugin:dialog|open failed", e);
+      toast(`Не удалось открыть выбор папки: ${e}`);
+    }
+  }
+  toast("Выбор папки недоступен. Введите путь вручную ниже.");
   return null;
 }
 
@@ -60,6 +80,17 @@ async function mockInvoke(cmd, args) {
       return null;
     case "validate_zapret_path":
       return Boolean(args.path);
+    case "inspect_zapret_path":
+      return {
+        path: args.path,
+        valid: Boolean(args.path),
+        has_winws: true,
+        has_general_bat: true,
+        has_service_bat: true,
+        has_lists: true,
+        suggested_subfolder: null,
+        message: "Папка zapret найдена",
+      };
     case "list_strategies_cmd":
       return [
         { name: "general", file_name: "general.bat" },
@@ -105,6 +136,10 @@ const els = {
   zapretPathRow: $("#row-zapret-path"),
   zapretPathValue: $("#zapret-path-value"),
   zapretPathStatus: $("#zapret-path-status"),
+  zapretPathMessage: $("#zapret-path-message"),
+  zapretPathInput: $("#zapret-path-input"),
+  zapretPathApply: $("#zapret-path-apply"),
+  zapretPathRedetect: $("#zapret-path-redetect"),
   strategySelect: $("#strategy-select"),
   gameFilterSelect: $("#game-filter-select"),
   optTray: $("#opt-tray"),
@@ -182,7 +217,8 @@ function renderSettings() {
   const s = STATE.settings;
 
   els.zapretPathValue.textContent = s.zapret_path || "не выбрана";
-  // The badge state is updated separately when we validate the path.
+  els.zapretPathInput.value = s.zapret_path || "";
+  // The badge state is updated separately when we inspect the path.
 
   // Strategy select
   els.strategySelect.innerHTML = "";
@@ -228,14 +264,73 @@ function setPathBadge(ok) {
   }
 }
 
+function setPathMessage(msg) {
+  if (!msg) {
+    els.zapretPathMessage.textContent = "";
+    els.zapretPathMessage.hidden = true;
+  } else {
+    els.zapretPathMessage.textContent = msg;
+    els.zapretPathMessage.hidden = false;
+  }
+}
+
+/// Try to apply a folder path: inspect it, save if valid, suggest subfolder if not.
+async function applyZapretPath(rawPath) {
+  if (!rawPath) {
+    return;
+  }
+  const path = String(rawPath).trim().replace(/^["']|["']$/g, "");
+  if (!path) return;
+
+  let info;
+  try {
+    info = await invoke("inspect_zapret_path", { path });
+  } catch (e) {
+    toast(`Ошибка проверки пути: ${e}`);
+    return;
+  }
+
+  if (info.valid) {
+    STATE.settings.zapret_path = info.path;
+    await saveSettings();
+    await refreshStrategies();
+    setPathBadge(true);
+    setPathMessage("Папка zapret найдена ✓");
+    renderSettings();
+    renderMain();
+    toast("Папка zapret сохранена");
+    return;
+  }
+
+  // Invalid, but maybe we can suggest a subfolder.
+  if (info.suggested_subfolder) {
+    const ok = window.confirm(
+      `${info.message}\n\nИспользовать вместо неё:\n${info.suggested_subfolder}?`
+    );
+    if (ok) {
+      await applyZapretPath(info.suggested_subfolder);
+      return;
+    }
+  }
+
+  // Save anyway so the user can see what they entered, but flag it.
+  STATE.settings.zapret_path = info.path;
+  await saveSettings();
+  setPathBadge(false);
+  setPathMessage(info.message);
+  renderSettings();
+  renderMain();
+  toast(info.message, 5000);
+}
+
 let toastTimer = null;
-function toast(message) {
+function toast(message, duration = 2400) {
   els.toast.textContent = message;
   els.toast.hidden = false;
   if (toastTimer) clearTimeout(toastTimer);
   toastTimer = setTimeout(() => {
     els.toast.hidden = true;
-  }, 2400);
+  }, duration);
 }
 
 // ---------- Page navigation ----------
@@ -258,12 +353,18 @@ async function loadAll() {
   await refreshStrategies();
   await refreshStatus();
   if (STATE.settings.zapret_path) {
-    const ok = await invoke("validate_zapret_path", {
-      path: STATE.settings.zapret_path,
-    });
-    setPathBadge(ok);
+    try {
+      const info = await invoke("inspect_zapret_path", {
+        path: STATE.settings.zapret_path,
+      });
+      setPathBadge(info.valid);
+      setPathMessage(info.valid ? "" : info.message);
+    } catch (_e) {
+      setPathBadge(false);
+    }
   } else {
     setPathBadge(false);
+    setPathMessage("");
   }
   renderMain();
   renderSettings();
@@ -339,16 +440,35 @@ els.bigButton.addEventListener("click", toggle);
 els.cardStrategy.addEventListener("click", () => showPage("settings"));
 els.cardGame.addEventListener("click", () => showPage("settings"));
 
-els.zapretPathRow.addEventListener("click", async () => {
+els.zapretPathRow.addEventListener("click", async (e) => {
+  // Don't intercept clicks on the manual-input area or its children.
+  if (e.target.closest(".path-input")) return;
   const path = await pickFolder();
   if (!path) return;
-  STATE.settings.zapret_path = String(path);
-  await saveSettings();
-  await refreshStrategies();
-  const ok = await invoke("validate_zapret_path", { path: STATE.settings.zapret_path });
-  setPathBadge(ok);
-  renderSettings();
-  renderMain();
+  await applyZapretPath(path);
+});
+
+els.zapretPathApply.addEventListener("click", async () => {
+  await applyZapretPath(els.zapretPathInput.value);
+});
+
+els.zapretPathInput.addEventListener("keydown", async (e) => {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    await applyZapretPath(els.zapretPathInput.value);
+  }
+});
+
+els.zapretPathRedetect.addEventListener("click", async () => {
+  const detected = await invoke("detect_zapret_path");
+  if (detected) {
+    await applyZapretPath(detected);
+  } else {
+    toast(
+      "Не удалось найти zapret. Введите путь вручную (например, C:\\zapret-discord-youtube)",
+      4500
+    );
+  }
 });
 
 els.strategySelect.addEventListener("change", async (e) => {
