@@ -133,20 +133,33 @@ fn spawn_via_bat(bat: &Path, zapret_dir: &Path) -> Result<u32, String> {
     // CREATE_NO_WINDOW = 0x08000000  -- run cmd.exe without a console window.
     const CREATE_NO_WINDOW: u32 = 0x0800_0000;
 
-    let output = Command::new("cmd.exe")
+    // CRITICAL: stdio MUST be Stdio::null(), not Stdio::piped().
+    //
+    // service.bat (called from general.bat) runs
+    //   start /b service check_updates soft
+    // which spawns a background descendant that INHERITS our stdout/stderr
+    // pipe handles. Even after cmd.exe itself exits, that descendant keeps
+    // the pipes open, so `Command::output()` (and `wait_with_output()`)
+    // would block forever waiting for EOF. spawn() + wait() avoids
+    // wait_with_output, and null stdio avoids the inherited-handle issue
+    // entirely.
+    let mut child = Command::new("cmd.exe")
         .arg("/c")
         .arg(bat)
         .current_dir(zapret_dir)
         .creation_flags(CREATE_NO_WINDOW)
         .stdin(Stdio::null())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .output()
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .spawn()
         .map_err(|e| format!("Не удалось запустить cmd.exe: {}", e))?;
 
-    // The bat does `start /min winws.exe ...` which detaches the process.
-    // cmd.exe returned, but winws.exe may take a moment to appear in the
-    // process list. Poll for up to ~3 s.
+    // Wait for cmd.exe (the bat) to finish. This does NOT wait for
+    // grandchildren like the spawned winws.exe or background update-check.
+    let _ = child.wait();
+
+    // The bat used `start /min winws.exe ...` to detach winws.exe; give
+    // Windows a moment to put it in the process list, then poll.
     let mut sys = System::new();
     let mut found_pid: Option<u32> = None;
     for _ in 0..10 {
@@ -159,20 +172,17 @@ fn spawn_via_bat(bat: &Path, zapret_dir: &Path) -> Result<u32, String> {
     }
 
     // If we saw a winws.exe, verify it actually stays up — when WinDivert
-    // can't be loaded (no admin rights, AV interference) winws.exe spawns,
-    // logs an error and exits within ~1 s. We want to surface that error
-    // instead of pretending it started.
+    // can't be loaded (no admin rights / AV interference) winws.exe spawns,
+    // logs an error and exits within ~1 s. We want to catch that case
+    // explicitly instead of returning a false-positive Ok.
     if let Some(pid) = found_pid {
-        std::thread::sleep(Duration::from_millis(1500));
+        std::thread::sleep(Duration::from_millis(1200));
         sys.refresh_processes(sysinfo::ProcessesToUpdate::All, true);
         if sys.process(sysinfo::Pid::from_u32(pid)).is_some() {
             return Ok(pid);
         }
     }
 
-    // winws.exe never appeared, or appeared and died → surface diagnostics.
-    let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
-    let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
     let mut msg = if found_pid.is_some() {
         String::from("winws.exe запустился, но сразу же завершился. ")
     } else {
@@ -183,39 +193,17 @@ fn spawn_via_bat(bat: &Path, zapret_dir: &Path) -> Result<u32, String> {
          1) приложение запущено без прав администратора (драйвер WinDivert не грузится без них) — \
          перезапустите от имени администратора;\n\
          2) winws.exe / WinDivert64.sys заблокирован антивирусом — добавьте папку bin в исключения;\n\
-         3) уже запущен другой экземпляр zapret или установлена служба zapret.",
+         3) уже запущен другой экземпляр zapret или установлена служба zapret \
+         (попробуйте `service.bat` → пункт «Remove Services»).\n\n\
+         Если не помогло — запустите выбранный .bat вручную из папки zapret \
+         через двойной клик и пришлите скриншот ошибки.",
     );
-    let bat_text = combine_output(&stdout, &stderr);
-    if !bat_text.is_empty() {
-        msg.push_str("\n\nВывод bat-скрипта:\n");
-        msg.push_str(&bat_text);
-    }
     Err(msg)
 }
 
 #[cfg(not(windows))]
 fn spawn_via_bat(_bat: &Path, _zapret_dir: &Path) -> Result<u32, String> {
     Err("zapret поддерживается только на Windows".into())
-}
-
-#[cfg_attr(not(windows), allow(dead_code))]
-fn combine_output(stdout: &str, stderr: &str) -> String {
-    let mut out = String::new();
-    if !stdout.is_empty() {
-        out.push_str(stdout);
-    }
-    if !stderr.is_empty() {
-        if !out.is_empty() {
-            out.push_str("\n---\n");
-        }
-        out.push_str(stderr);
-    }
-    // Trim huge outputs that wouldn't fit in a toast.
-    if out.len() > 1500 {
-        out.truncate(1500);
-        out.push_str("\n…");
-    }
-    out
 }
 
 #[cfg(windows)]
