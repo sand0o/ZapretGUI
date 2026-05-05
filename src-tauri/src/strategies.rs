@@ -57,6 +57,7 @@ pub fn game_filter_values(mode: &str) -> (&'static str, &'static str, &'static s
 
 /// Parsed `winws.exe` invocation extracted from a `general*.bat` file.
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct ParsedStrategy {
     pub args: Vec<String>,
 }
@@ -65,6 +66,11 @@ pub struct ParsedStrategy {
 /// `winws.exe`, with all `%BIN%`, `%LISTS%`, `%GameFilter*%` placeholders
 /// substituted. Returns an error if no `start "..." winws.exe ...` block is
 /// found.
+///
+/// Currently unused at runtime (we run the bat through cmd.exe instead, which
+/// is more robust because it also runs the service.bat init steps). Kept here
+/// as a tested building block for future advanced/custom-strategy support.
+#[allow(dead_code)]
 pub fn parse_strategy(
     bat_path: &Path,
     zapret_dir: &Path,
@@ -143,6 +149,7 @@ pub fn parse_strategy(
     Ok(ParsedStrategy { args: substituted })
 }
 
+#[allow(dead_code)]
 fn path_with_trailing_sep(p: &Path) -> String {
     let mut s = p.to_string_lossy().into_owned();
     if !s.ends_with('\\') && !s.ends_with('/') {
@@ -153,6 +160,7 @@ fn path_with_trailing_sep(p: &Path) -> String {
 
 /// Very small CMD-style tokenizer: splits on whitespace, honors double-quoted
 /// strings (preserving inner content, dropping the quotes).
+#[allow(dead_code)]
 fn tokenize(line: &str) -> Vec<String> {
     let mut out: Vec<String> = Vec::new();
     let mut cur = String::new();
