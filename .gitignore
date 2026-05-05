@@ -1,0 +1,27 @@
+# Rust / Cargo
+target/
+**/target/
+Cargo.lock.bak
+
+# Tauri
+src-tauri/gen/
+src-tauri/WixTools/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+*.exe
+*.msi
+*.app
+dist/
+
+# Logs
+*.log

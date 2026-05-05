@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ZapretGUI</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body data-theme="dark">
+    <!-- ------------------------ MAIN SCREEN ------------------------ -->
+    <main id="page-main" class="page page--main is-active">
+      <header class="topbar">
+        <h1 class="topbar__title">ZapretGUI</h1>
+        <button
+          class="topbar__icon-btn"
+          id="open-settings"
+          aria-label="Настройки"
+          title="Настройки"
+        >
+          <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+            <path
+              fill="currentColor"
+              d="M19.14 12.94a7.49 7.49 0 0 0 .05-.94 7.49 7.49 0 0 0-.05-.94l2.03-1.58a.5.5 0 0 0 .12-.64l-1.92-3.32a.5.5 0 0 0-.61-.22l-2.39.96a7.03 7.03 0 0 0-1.62-.94l-.36-2.54a.5.5 0 0 0-.5-.43h-3.84a.5.5 0 0 0-.5.43l-.36 2.54c-.59.24-1.13.55-1.62.94l-2.39-.96a.5.5 0 0 0-.61.22L2.65 8.84a.5.5 0 0 0 .12.64L4.8 11.06c-.03.31-.05.62-.05.94s.02.63.05.94L2.77 14.52a.5.5 0 0 0-.12.64l1.92 3.32a.5.5 0 0 0 .61.22l2.39-.96c.49.39 1.03.7 1.62.94l.36 2.54a.5.5 0 0 0 .5.43h3.84a.5.5 0 0 0 .5-.43l.36-2.54a7.03 7.03 0 0 0 1.62-.94l2.39.96a.5.5 0 0 0 .61-.22l1.92-3.32a.5.5 0 0 0-.12-.64ZM12 15.5A3.5 3.5 0 1 1 15.5 12 3.5 3.5 0 0 1 12 15.5Z"
+            />
+          </svg>
+        </button>
+      </header>
+
+      <section
+        id="admin-warning"
+        class="warning"
+        role="alert"
+        hidden
+      >
+        <span>Запустите от имени администратора, иначе обход не сработает.</span>
+        <button id="restart-admin" class="warning__btn">Перезапустить</button>
+      </section>
+
+      <div class="center-stack">
+        <button
+          id="big-button"
+          class="big-btn"
+          data-state="off"
+          aria-label="Запустить или остановить"
+        >
+          <svg viewBox="0 0 24 24" width="60" height="60" aria-hidden="true">
+            <path
+              fill="currentColor"
+              d="M13 3h-2v10h2V3Zm4.83 2.17-1.42 1.42a7 7 0 1 1-8.82 0L6.17 5.17a9 9 0 1 0 11.66 0Z"
+            />
+          </svg>
+        </button>
+
+        <p id="status-text" class="status-text">Отключено</p>
+        <p id="status-sub" class="status-sub">Стратегия не выбрана</p>
+      </div>
+
+      <nav class="bottom-cards">
+        <button class="card" id="card-strategy">
+          <div class="card__icon">
+            <svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true">
+              <path
+                fill="currentColor"
+                d="M3 6h18v2H3V6Zm3 5h12v2H6v-2Zm4 5h4v2h-4v-2Z"
+              />
+            </svg>
+          </div>
+          <div class="card__text">
+            <span class="card__label">Стратегия</span>
+            <span id="card-strategy-value" class="card__value">—</span>
+          </div>
+        </button>
+
+        <button class="card" id="card-game">
+          <div class="card__icon">
+            <svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true">
+              <path
+                fill="currentColor"
+                d="M21 6H3a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h18a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2ZM7 14H5v-2H3v-2h2V8h2v2h2v2H7v2Zm8 0a1 1 0 1 1 1-1 1 1 0 0 1-1 1Zm4-3a1 1 0 1 1 1-1 1 1 0 0 1-1 1Z"
+              />
+            </svg>
+          </div>
+          <div class="card__text">
+            <span class="card__label">Игровой фильтр</span>
+            <span id="card-game-value" class="card__value">Выкл</span>
+          </div>
+        </button>
+      </nav>
+    </main>
+
+    <!-- ------------------------ SETTINGS SCREEN ------------------------ -->
+    <main id="page-settings" class="page page--settings">
+      <header class="topbar">
+        <button
+          class="topbar__icon-btn"
+          id="back-main"
+          aria-label="Назад"
+          title="Назад"
+        >
+          <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+            <path
+              fill="currentColor"
+              d="M15.41 7.41 14 6l-6 6 6 6 1.41-1.41L10.83 12l4.58-4.59Z"
+            />
+          </svg>
+        </button>
+        <h1 class="topbar__title">Настройки</h1>
+        <span style="width:32px"></span>
+      </header>
+
+      <section class="settings">
+        <h2 class="settings__group">Путь к zapret</h2>
+
+        <div class="row row--clickable" id="row-zapret-path">
+          <div class="row__icon">
+            <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+              <path
+                fill="currentColor"
+                d="M10 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-8l-2-2Z"
+              />
+            </svg>
+          </div>
+          <div class="row__main">
+            <span class="row__label">Папка zapret-discord-youtube</span>
+            <span id="zapret-path-value" class="row__sub">не выбрана</span>
+          </div>
+          <span id="zapret-path-status" class="badge badge--bad">не найден</span>
+        </div>
+
+        <h2 class="settings__group">Стратегия</h2>
+
+        <div class="row">
+          <div class="row__icon">
+            <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+              <path
+                fill="currentColor"
+                d="M3 6h18v2H3V6Zm3 5h12v2H6v-2Zm4 5h4v2h-4v-2Z"
+              />
+            </svg>
+          </div>
+          <div class="row__main">
+            <span class="row__label">Активная стратегия</span>
+            <select id="strategy-select" class="row__select"></select>
+          </div>
+        </div>
+
+        <h2 class="settings__group">Игровой фильтр</h2>
+
+        <div class="row" id="row-game-filter">
+          <div class="row__icon">
+            <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+              <path
+                fill="currentColor"
+                d="M21 6H3a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h18a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2ZM7 14H5v-2H3v-2h2V8h2v2h2v2H7v2Zm8 0a1 1 0 1 1 1-1 1 1 0 0 1-1 1Zm4-3a1 1 0 1 1 1-1 1 1 0 0 1-1 1Z"
+              />
+            </svg>
+          </div>
+          <div class="row__main">
+            <span class="row__label">Режим</span>
+            <select id="game-filter-select" class="row__select">
+              <option value="off">Выключен</option>
+              <option value="all">TCP + UDP</option>
+              <option value="tcp">Только TCP</option>
+              <option value="udp">Только UDP</option>
+            </select>
+            <span class="row__hint">
+              Перенаправляет нестандартные TCP/UDP-порты (1024–65535) в обход. Полезно для игр.
+            </span>
+          </div>
+        </div>
+
+        <h2 class="settings__group">Поведение</h2>
+
+        <label class="row row--toggle">
+          <div class="row__icon">
+            <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+              <path
+                fill="currentColor"
+                d="M3 13h2v-2H3v2Zm4 0h2v-2H7v2Zm4 0h2v-2h-2v2Zm4 0h2v-2h-2v2Zm4 0h2v-2h-2v2ZM3 17h18v-2H3v2ZM3 9h18V7H3v2Z"
+              />
+            </svg>
+          </div>
+          <div class="row__main">
+            <span class="row__label">Сворачивать в трей</span>
+            <span class="row__hint">При закрытии окна приложение остаётся в фоне</span>
+          </div>
+          <input type="checkbox" id="opt-tray" class="switch" />
+        </label>
+
+        <label class="row row--toggle">
+          <div class="row__icon">
+            <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+              <path
+                fill="currentColor"
+                d="M13 3h-2v10h2V3Zm4.83 2.17-1.42 1.42a7 7 0 1 1-8.82 0L6.17 5.17a9 9 0 1 0 11.66 0Z"
+              />
+            </svg>
+          </div>
+          <div class="row__main">
+            <span class="row__label">Включать обход при старте</span>
+            <span class="row__hint">Запускать winws.exe сразу при открытии приложения</span>
+          </div>
+          <input type="checkbox" id="opt-autostart" class="switch" />
+        </label>
+
+        <label class="row row--toggle">
+          <div class="row__icon">
+            <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+              <path
+                fill="currentColor"
+                d="M12 3a9 9 0 1 0 9 9c0-.46-.04-.92-.1-1.36A5.4 5.4 0 0 1 12 3Z"
+              />
+            </svg>
+          </div>
+          <div class="row__main">
+            <span class="row__label">Тёмная тема</span>
+          </div>
+          <input type="checkbox" id="opt-dark" class="switch" />
+        </label>
+
+        <h2 class="settings__group">О программе</h2>
+
+        <div class="row row--info">
+          <div class="row__main">
+            <span class="row__label">ZapretGUI</span>
+            <span class="row__sub">v0.1.0 · обёртка над flowseal/zapret-discord-youtube</span>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Toast notifications -->
+    <div id="toast" class="toast" hidden></div>
+
+    <script type="module" src="app.js"></script>
+  </body>
+</html>
