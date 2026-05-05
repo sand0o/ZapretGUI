@@ -413,7 +413,7 @@ async function toggle() {
       STATE.status = await invoke("start_zapret");
       toast("zapret запущен");
     } catch (e) {
-      toast(`Ошибка запуска: ${e}`);
+      reportLaunchError("Ошибка запуска", e);
     } finally {
       STATE.busy = false;
       renderMain();
@@ -425,11 +425,24 @@ async function toggle() {
       STATE.status = await invoke("stop_zapret");
       toast("zapret остановлен");
     } catch (e) {
-      toast(`Ошибка остановки: ${e}`);
+      reportLaunchError("Ошибка остановки", e);
     } finally {
       STATE.busy = false;
       renderMain();
     }
+  }
+}
+
+// Show short errors as toasts; show long errors in a scrollable modal so the
+// user can read the full bat-script output (which often explains the issue).
+function reportLaunchError(prefix, err) {
+  const msg = String(err);
+  console.error(`${prefix}:`, msg);
+  if (msg.length > 200 || msg.includes("\n")) {
+    toast(`${prefix} — см. детали`, 4000);
+    window.alert(`${prefix}\n\n${msg}`);
+  } else {
+    toast(`${prefix}: ${msg}`, 5000);
   }
 }
 
