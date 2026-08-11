@@ -13,7 +13,10 @@ use tauri::{
 
 use crate::settings::{autodetect_zapret_path, inspect_path, looks_like_zapret, PathInspection, Settings};
 use crate::strategies::{list_strategies, Strategy};
-use crate::zapret::{current_status, start as zapret_start, stop as zapret_stop, Status, ZapretState};
+use crate::zapret::{
+    current_status, restart_driver as zapret_restart_driver, start as zapret_start,
+    stop as zapret_stop, Status, ZapretState,
+};
 
 /// Shared application state behind a Mutex; all Tauri commands take it via `State`.
 pub struct AppState {
@@ -107,6 +110,34 @@ async fn stop_zapret(app: AppHandle, state: State<'_, AppState>) -> Result<Statu
     Ok(status)
 }
 
+/// Fixes anti-cheat interference (e.g. Fortnite / Easy Anti-Cheat): stops
+/// winws.exe, resets the WinDivert driver service, and starts zapret again
+/// with the currently saved strategy/game-filter.
+#[tauri::command]
+async fn fix_eac_zapret(app: AppHandle, state: State<'_, AppState>) -> Result<Status, String> {
+    let s = state.settings.lock().unwrap().clone();
+    let zapret_path = s
+        .zapret_path
+        .clone()
+        .ok_or_else(|| "Не указана папка с zapret".to_string())?;
+    let strategy = s
+        .strategy
+        .clone()
+        .ok_or_else(|| "Не выбрана стратегия".to_string())?;
+    let dir = PathBuf::from(&zapret_path);
+    if !looks_like_zapret(&dir) {
+        return Err(format!(
+            "В папке {} не найдены winws.exe и general.bat",
+            zapret_path
+        ));
+    }
+    zapret_restart_driver(&state.zapret, &dir, &strategy, &s.game_filter)?;
+    let status = current_status(&state.zapret);
+    let _ = app.emit("zapret-status", &status);
+    refresh_tray(&app, status.active);
+    Ok(status)
+}
+
 #[tauri::command]
 fn is_admin() -> bool {
     is_elevated()
@@ -165,6 +196,7 @@ pub fn run() {
             get_status,
             start_zapret,
             stop_zapret,
+            fix_eac_zapret,
             is_admin,
             relaunch_as_admin,
             quit_app,
