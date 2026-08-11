@@ -107,6 +107,10 @@ async function mockInvoke(cmd, args) {
       mockState.active = false;
       mockState.pid = null;
       return { active: false, pid: null };
+    case "fix_eac_zapret":
+      mockState.active = true;
+      mockState.pid = 12345;
+      return { active: true, pid: 12345 };
     case "is_admin":
       return true;
     case "relaunch_as_admin":
@@ -127,6 +131,7 @@ const els = {
   openSettings: $("#open-settings"),
   backMain: $("#back-main"),
   bigButton: $("#big-button"),
+  fixEacButton: $("#fix-eac-button"),
   statusText: $("#status-text"),
   statusSub: $("#status-sub"),
   cardStrategy: $("#card-strategy"),
@@ -433,6 +438,33 @@ async function toggle() {
   }
 }
 
+// Fix EAC/anti-cheat interference (e.g. Fortnite): stop winws.exe, reset the
+// WinDivert driver service, start again with the current strategy.
+async function fixEac() {
+  if (STATE.busy) return;
+  if (!STATE.settings.zapret_path) {
+    toast("Сначала укажите папку с zapret в настройках");
+    showPage("settings");
+    return;
+  }
+  if (!STATE.settings.strategy) {
+    toast("Выберите стратегию");
+    showPage("settings");
+    return;
+  }
+  STATE.busy = true;
+  renderMain();
+  try {
+    STATE.status = await invoke("fix_eac_zapret");
+    toast("Драйвер перезапущен, zapret снова активен");
+  } catch (e) {
+    reportLaunchError("Не удалось исправить", e);
+  } finally {
+    STATE.busy = false;
+    renderMain();
+  }
+}
+
 // Show short errors as toasts; show long errors in a scrollable modal so the
 // user can read the full bat-script output (which often explains the issue).
 function reportLaunchError(prefix, err) {
@@ -450,6 +482,7 @@ function reportLaunchError(prefix, err) {
 els.openSettings.addEventListener("click", () => showPage("settings"));
 els.backMain.addEventListener("click", () => showPage("main"));
 els.bigButton.addEventListener("click", toggle);
+els.fixEacButton.addEventListener("click", fixEac);
 els.cardStrategy.addEventListener("click", () => showPage("settings"));
 els.cardGame.addEventListener("click", () => showPage("settings"));
 
