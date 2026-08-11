@@ -224,6 +224,57 @@ fn kill_pid(_pid: u32) -> Result<(), String> {
     Ok(())
 }
 
+/// Fixes anti-cheat interference (e.g. Easy Anti-Cheat in Fortnite): some
+/// EAC updates grab an exclusive handle to the WinDivert driver once the
+/// protected game starts, which silently breaks the bypass even though
+/// winws.exe is still "running". The fix is to stop winws.exe (releasing
+/// its handle), force-stop the WinDivert driver service so it gets
+/// reloaded fresh, then start zapret again with the same strategy.
+pub fn restart_driver(
+    state: &ZapretState,
+    zapret_dir: &Path,
+    strategy_file: &str,
+    game_filter_mode: &str,
+) -> Result<u32, String> {
+    // Stop the currently running winws.exe first so it lets go of the
+    // driver handle before we touch the service.
+    stop(state)?;
+
+    #[cfg(windows)]
+    std::thread::sleep(Duration::from_millis(500));
+
+    reset_windivert_service();
+
+    #[cfg(windows)]
+    std::thread::sleep(Duration::from_millis(500));
+
+    // Re-apply the chosen strategy; this respawns winws.exe, which reloads
+    // the WinDivert driver on demand.
+    start(state, zapret_dir, strategy_file, game_filter_mode)
+}
+
+/// Force-stops the WinDivert (and, for setups that have it, a "zapret")
+/// Windows service so it gets freshly reloaded on next use. Errors are
+/// intentionally ignored: the service may not exist under this exact name,
+/// or may already be stopped — both are fine, we only care about the reset
+/// happening when possible. Requires the process to already be elevated
+/// (ZapretGUI already requires admin rights to load WinDivert at all).
+#[cfg(windows)]
+fn reset_windivert_service() {
+    use std::os::windows::process::CommandExt;
+    use std::process::Command;
+    const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+    for service in ["windivert", "zapret"] {
+        let _ = Command::new("sc")
+            .args(["stop", service])
+            .creation_flags(CREATE_NO_WINDOW)
+            .output();
+    }
+}
+
+#[cfg(not(windows))]
+fn reset_windivert_service() {}
+
 #[cfg(windows)]
 fn kill_all_winws() {
     use std::os::windows::process::CommandExt;
